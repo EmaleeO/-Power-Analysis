@@ -1,0 +1,61 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+def monte_carlo_diminishing_returns(true_mean, true_std, max_aliquots=20, n_simulations=10000, error_margin_pct=10):
+    """
+    Perform Monte Carlo simulations to assess the diminishing returns of increasing the number of aliquots in composite sampling.
+    
+    Parameters:
+    - true_mean: The true mean concentration of the contaminant.
+    - true_std: The standard deviation of the contaminant concentration.
+    - max_aliquots: The maximum number of aliquots to test (default is 20).
+    - n_simulations: The number of Monte Carlo simulations to run for each aliquot size (default is 10,000).
+    - error_margin_pct: The acceptable error margin as a percentage of the true mean (default is 5%).
+
+    Returns:
+    - A graph of diminishing returns for different levels of variability in the standard deviation.
+    """
+
+    # Define different variability levels: standard deviation +10%, -10%, and +20%
+    std_factors = [0.9, 1.0, 1.1, 1.2]
+    variability_labels = ['-10% Std', 'Original Std', '+10% Std', '+20% Std']
+    
+    # Error margin based on the true mean
+    error_margin = error_margin_pct / 100 * true_mean
+
+    # Store accuracy results for each standard deviation factor
+    accuracy_results = {label: [] for label in variability_labels}
+
+    # Loop over aliquot sizes from 1 to max_aliquots
+    aliquot_sizes = range(1, max_aliquots + 1)
+
+    for factor, label in zip(std_factors, variability_labels):
+        adjusted_std = true_std * factor
+        for n_aliquots in aliquot_sizes:
+            composite_means = []
+            for _ in range(n_simulations):
+                # Generate log-normal samples
+                samples = np.random.normal(true_mean, adjusted_std, n_aliquots)
+                composite_mean = np.mean(samples)
+                composite_means.append(composite_mean)
+            
+            composite_means = np.array(composite_means)
+            # Calculate the percentage of simulations within the acceptable error margin
+            accuracy = np.mean(np.abs(composite_means - true_mean) <= error_margin) * 100
+            accuracy_results[label].append(accuracy)
+
+    # Plot the results
+    plt.figure(figsize=(12, 8))
+
+    for label in variability_labels:
+        plt.plot(aliquot_sizes, accuracy_results[label], label=f'Variability: {label}', marker='o')
+
+    plt.title('Diminishing Returns for Composite Sampling with Varying Variability', fontsize=16)
+    plt.xlabel('Number of Aliquots (Composite Samples)', fontsize=14)
+    plt.ylabel('Accuracy (%)', fontsize=14)
+    plt.grid(True)
+    plt.legend()
+    plt.show()
+
+# Example usage
+monte_carlo_diminishing_returns(true_mean=0.013, true_std=0.0026)
